@@ -663,7 +663,9 @@ public class QSPanel extends LinearLayout implements Tunable, Callback, Brightne
     private boolean shouldUseHorizontalLayout() {
         return mUsingMediaPlayer && mMediaHost.getVisible()
                 && getResources().getConfiguration().orientation
-                == Configuration.ORIENTATION_LANDSCAPE;
+                == Configuration.ORIENTATION_LANDSCAPE
+                && getResources().getConfiguration().screenWidthDp
+                < 600;
     }
 
     protected void reAttachMediaHost() {
@@ -959,7 +961,7 @@ public class QSPanel extends LinearLayout implements Tunable, Callback, Brightne
         }
         r.tile.setDetailListening(show);
         int x = r.tileView.getLeft() + r.tileView.getWidth() / 2;
-        int y = r.tileView.getDetailY() + mTileLayout.getOffsetTop(r);
+        int y = r.tileView.getDetailY();
         handleShowDetailImpl(r, show, x, y);
     }
 

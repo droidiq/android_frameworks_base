@@ -244,7 +244,11 @@ public class VolumeDialogImpl implements VolumeDialog,
     private void initDialog() {
 
         // Gravitate various views left/right depending on panel placement setting.
-        final int panelGravity = mVolumePanelOnLeft ? Gravity.LEFT : Gravity.RIGHT;
+        int panelGravity =
+                mContext.getResources().getInteger(R.integer.volume_dialog_gravity);
+        if (!mShowActiveStreamOnly) {
+            panelGravity = mVolumePanelOnLeft ? Gravity.LEFT : Gravity.RIGHT;
+        }
 
         mConfigurableTexts = new ConfigurableTexts(mContext);
         mHovering = false;
@@ -291,7 +295,8 @@ public class VolumeDialogImpl implements VolumeDialog,
 
         FrameLayout.LayoutParams dialogViewLP =
                 (FrameLayout.LayoutParams) mDialogView.getLayoutParams();
-        dialogViewLP.gravity = Gravity.CENTER_VERTICAL;
+        dialogViewLP.gravity = mShowActiveStreamOnly ? panelGravity
+                : Gravity.CENTER_VERTICAL;
         mDialogView.setLayoutParams(dialogViewLP);
 
         mDialogMainView = mDialog.findViewById(R.id.main);
@@ -376,9 +381,9 @@ public class VolumeDialogImpl implements VolumeDialog,
         internalInsetsInfo.setTouchableInsets(InternalInsetsInfo.TOUCHABLE_INSETS_REGION);
         View main = mDialog.findViewById(R.id.main);
         int[] mainLocation = new int[2];
-        main.getLocationOnScreen(mainLocation);
+        main.getLocationInWindow(mainLocation);
         int[] dialogLocation = new int[2];
-        mDialogView.getLocationOnScreen(dialogLocation);
+        mDialogView.getLocationInWindow(dialogLocation);
         internalInsetsInfo.touchableRegion.set(new Region(
                 mainLocation[0],
                 dialogLocation[1],
@@ -411,8 +416,7 @@ public class VolumeDialogImpl implements VolumeDialog,
                 if (mVolumePanelOnLeft != volumePanelOnLeft) {
                     mVolumePanelOnLeft = volumePanelOnLeft;
                     mHandler.post(() -> {
-                        // Trigger panel rebuild on next show
-                        mConfigChanged = true;
+                        mControllerCallbackH.onConfigurationChanged();
                     });
                 }
             }
@@ -707,6 +711,7 @@ public class VolumeDialogImpl implements VolumeDialog,
     private void initODICaptionsH() {
         if (mODICaptionsIcon != null) {
             mODICaptionsIcon.setOnConfirmedTapListener(() -> {
+                rescheduleTimeoutH();
                 onCaptionIconClicked();
                 Events.writeEvent(Events.EVENT_ODI_CAPTIONS_CLICK);
             }, mHandler);
@@ -988,6 +993,8 @@ public class VolumeDialogImpl implements VolumeDialog,
                     mAllyStream = -1;
                     mMusicHidden = false;
                     tryToRemoveCaptionsTooltip();
+                    mDialog.getViewTreeObserver().removeOnComputeInternalInsetsListener(
+                            mInsetsListener);
                     mController.notifyVisible(false);
                 }, 50));
         if (!isLandscape() || !mShowActiveStreamOnly) animator.translationX(getAnimatorX());
